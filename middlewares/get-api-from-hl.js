@@ -5,7 +5,7 @@ const create_error = require("../helpers/create-error");
 
 dotenv.config();
 
-const get_api_from_ghl = async (request, response, next) => {
+const get_agency_api = async (request, response, next) => {
   try {
     const code = request.query.code || "";
     if (!code) return next(create_error(401, "No code available!"));
@@ -22,4 +22,4 @@ const get_api_from_ghl = async (request, response, next) => {
   }
 };
 
-module.exports = get_api_from_ghl;
+module.exports = get_agency_api;
