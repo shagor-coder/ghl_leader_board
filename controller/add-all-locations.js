@@ -2,6 +2,7 @@ const add_data_in_db = require("../helpers/add-data-in-db");
 const check_in_db = require("../helpers/check-in-db");
 const create_error = require("../helpers/create-error");
 const { create_expire_date } = require("../helpers/create-expire-date");
+const formal_sa_transactions = require("../helpers/format-transactions");
 const get_contacts_for_sa = require("../helpers/get-contacts-for-sa");
 const { get_location_api_by_agency } = require("../helpers/get-location-api");
 const get_transactions_for_sa = require("../helpers/get-transactions-for-sa");
@@ -131,25 +132,11 @@ const add_all_locations = async (request, response, next) => {
     transactions_setteled.forEach((result) => {
       if (result.status === "fulfilled") {
         const data = result.value || [];
-        let total_amount;
-        let filtered_transactions;
-
         let current_location = location_with_contacts.find(
           (loc) => loc.id === data.location_id
         );
 
-        data.transactions.length
-          ? (filtered_transactions = data.transactions?.filter(
-              (ts) =>
-                ts.status !== "failed" && ts.paymentProviderType === "stripe"
-            ))
-          : null;
-
-        data.transactions.length
-          ? (total_amount = filtered_transactions?.reduce(
-              (acc, cv, array) => acc.amount + cv.amount
-            ))
-          : null;
+        const total_amount = formal_sa_transactions(data.transactions);
 
         location_with_all_fields.push({
           ...current_location,

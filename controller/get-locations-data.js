@@ -1,5 +1,6 @@
 const { db } = require("../firebase/app");
 const create_error = require("../helpers/create-error");
+const formal_sa_transactions = require("../helpers/format-transactions");
 const get_contacts_for_sa = require("../helpers/get-contacts-for-sa");
 const {
   get_start_time_of_month,
@@ -58,37 +59,18 @@ const get_locations_data = async (request, response, next) => {
 
     let location_with_contacts = [];
     let location_with_all_fields = [];
-
-    let update_total_contats_promises = [];
-    let update_total_revenew_promises = [];
+    let update_location_promises = [];
 
     contacts_setteled.forEach((result) => {
       if (result.status === "fulfilled") {
         const data = result.value;
+
         let current_location = locations.find(
           (loc) => loc.id === data.location_id
         );
 
-        const {
-          name,
-          firstName,
-          lastName,
-          total_contacts,
-          total_revenew,
-          id,
-          companyId,
-        } = current_location;
-
-        is_today_last_day() &&
-          update_total_contats_promises.push(
-            update_location_in_db({
-              data: {
-                total_contacts: data.total_contacts,
-                companyId: companyId,
-                id: id,
-              },
-            })
-          );
+        const { name, firstName, lastName, total_contacts, total_revenew, id } =
+          current_location;
 
         location_with_contacts.push({
           name,
@@ -102,37 +84,43 @@ const get_locations_data = async (request, response, next) => {
       }
     });
 
+    const last_day = is_today_last_day();
+
     transactions_setteled.forEach((result) => {
       if (result.status === "fulfilled") {
         const data = result.value;
-        let total_amount;
-        let filtered_transactions;
         let current_location = location_with_contacts.find((loc) => {
           return loc.id === data.location_id;
         });
 
-        data.transactions.length
-          ? (filtered_transactions = data.transactions?.filter(
-              (ts) =>
-                ts.status === "succeeded" && ts.paymentProviderType === "stripe"
-            ))
-          : null;
+        const total_amount = formal_sa_transactions(data.transactions);
 
-        data.transactions.length
-          ? (total_amount = filtered_transactions?.reduce(
-              (acc, cv, array) => acc.amount + cv.amount
-            ))
-          : null;
+        let amount;
+
+        if (total_amount === null || total_amount === undefined) {
+          amount = 0;
+        } else {
+          amount = total_amount;
+        }
 
         location_with_all_fields.push({
           ...current_location,
-          new_revenew: total_amount ? total_amount : 0,
+          new_revenew: amount - current_location.total_revenew,
         });
+
+        last_day &&
+          update_location_promises.push(
+            update_location_in_db({
+              id: location.id,
+              total_amount: amount,
+              total_contacts:
+                current_location.new_contacts + current_location.total_contacts,
+            })
+          );
       }
     });
 
-    is_today_last_day() &&
-      (await Promise.allSettled(update_total_contats_promises));
+    await Promise.allSettled(update_location_promises);
 
     response
       .status(200)
