@@ -1,14 +1,17 @@
 const { db } = require("../firebase/app");
 
-const update_location_in_db = async ({ data }) => {
+const update_location_in_db = async (data) => {
   try {
-    const { id, ...other } = data;
-    const doc_ref = db.collection("locations").doc();
-    const location_ref = await doc_ref.get("id", "==", id);
-    await location_ref.ref.update({
-      ...other,
+    const { id, access_token, refresh_token, expires_in } = data;
+
+    const agency = await db.collection("locations").where("id", "==", id).get();
+    await agency.docs[0].ref.update({
+      access_token: access_token,
+      refresh_token: refresh_token,
+      expires_in: expires_in,
     });
-    return id;
+    const response = await agency.docs[0].ref.get();
+    return response.data();
   } catch (error) {
     throw new Error(error);
   }
