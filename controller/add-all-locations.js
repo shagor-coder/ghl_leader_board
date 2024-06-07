@@ -2,7 +2,9 @@ const add_data_in_db = require("../helpers/add-data-in-db");
 const check_in_db = require("../helpers/check-in-db");
 const create_error = require("../helpers/create-error");
 const { create_expire_date } = require("../helpers/create-expire-date");
+const get_contacts_for_sa = require("../helpers/get-contacts-for-sa");
 const { get_location_api_by_agency } = require("../helpers/get-location-api");
+const get_transactions_for_sa = require("../helpers/get-transactions-for-sa");
 const update_data_in_db = require("../helpers/update-data-in-db");
 
 const handle_agency_install = async ({
@@ -59,8 +61,10 @@ const add_all_locations = async (request, response, next) => {
       expires_in,
     });
 
-    let promises = [];
+    let api_promises = [];
     let updated_locations = [];
+    let contact_promises = [];
+    let transaction_promises = [];
 
     locations.forEach((location) => {
       const promise = get_location_api_by_agency({
@@ -68,10 +72,10 @@ const add_all_locations = async (request, response, next) => {
         company_id: companyId,
         location_id: location.id,
       });
-      promises.push(promise);
+      api_promises.push(promise);
     });
 
-    const setteled = await Promise.allSettled(promises);
+    const setteled = await Promise.allSettled(api_promises);
 
     setteled.forEach((result) => {
       if (result.status === "fulfilled") {
@@ -86,8 +90,60 @@ const add_all_locations = async (request, response, next) => {
       }
     });
 
+    updated_locations.forEach((location) => {
+      const promise = get_transactions_for_sa({
+        access_token: location.access_token,
+        location_id: location.id,
+      });
+      transaction_promises.push(promise);
+    });
+
+    updated_locations.forEach((location) => {
+      const promise = get_contacts_for_sa({
+        access_token: location.access_token,
+        location_id: location.id,
+      });
+
+      contact_promises.push(promise);
+    });
+
+    const transactions_setteled = await Promise.allSettled(
+      transaction_promises
+    );
+    const contacts_setteled = await Promise.allSettled(contact_promises);
+
+    let location_with_contacts = [];
+    let location_with_all_fields = [];
+
+    contacts_setteled.forEach((result) => {
+      if (result.status === "fulfilled") {
+        const data = result.value;
+        let current_location = updated_locations.find(
+          (loc) => loc.id === data.location_id
+        );
+        location_with_contacts.push({
+          ...current_location,
+          total_contacts: data.total_contacts,
+        });
+      }
+    });
+
+    transactions_setteled.forEach((result) => {
+      if (result.status === "fulfilled") {
+        const data = result.value;
+        let current_location = location_with_contacts.find(
+          (loc) => loc.id === data.location_id
+        );
+        location_with_all_fields.push({
+          ...current_location,
+          total_revenew: 0,
+        });
+      }
+    });
+
     let location_promises = [];
-    updated_locations?.forEach((location) => {
+
+    location_with_all_fields?.forEach((location) => {
       const promise = add_data_in_db({
         collection_name: "locations",
         data: {

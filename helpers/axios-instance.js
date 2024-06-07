@@ -4,6 +4,7 @@ dotenv.config();
 
 const axios_for_data = axios.create({
   method: "GET",
+  params: "",
   headers: {
     Accept: "application/json",
     version: "2021-07-28",
