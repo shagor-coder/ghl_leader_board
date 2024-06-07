@@ -97,7 +97,7 @@ const get_locations_data = async (request, response, next) => {
           total_contacts,
           total_revenew,
           id,
-          new_contacts: total_contacts - data.total_contacts,
+          new_contacts: data.total_contacts - total_contacts,
         });
       }
     });
@@ -105,12 +105,28 @@ const get_locations_data = async (request, response, next) => {
     transactions_setteled.forEach((result) => {
       if (result.status === "fulfilled") {
         const data = result.value;
+        let total_amount;
+        let filtered_transactions;
         let current_location = location_with_contacts.find((loc) => {
           return loc.id === data.location_id;
         });
+
+        data.transactions.length
+          ? (filtered_transactions = data.transactions?.filter(
+              (ts) =>
+                ts.status === "succeeded" && ts.paymentProviderType === "stripe"
+            ))
+          : null;
+
+        data.transactions.length
+          ? (total_amount = filtered_transactions?.reduce(
+              (acc, cv, array) => acc.amount + cv.amount
+            ))
+          : null;
+
         location_with_all_fields.push({
           ...current_location,
-          total_revenew: 0,
+          new_revenew: total_amount ? total_amount : 0,
         });
       }
     });

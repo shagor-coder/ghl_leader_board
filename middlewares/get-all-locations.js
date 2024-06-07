@@ -8,7 +8,7 @@ const get_all_locations = async (request, response, next) => {
       headers: {
         Authorization: "Bearer " + access_token,
       },
-      params: { companyId: companyId },
+      params: { companyId: companyId, limit: 1000 },
     });
     const data = await api_request.data;
     request.locations = data.locations;

@@ -130,13 +130,30 @@ const add_all_locations = async (request, response, next) => {
 
     transactions_setteled.forEach((result) => {
       if (result.status === "fulfilled") {
-        const data = result.value;
+        const data = result.value || [];
+        let total_amount;
+        let filtered_transactions;
+
         let current_location = location_with_contacts.find(
           (loc) => loc.id === data.location_id
         );
+
+        data.transactions.length
+          ? (filtered_transactions = data.transactions?.filter(
+              (ts) =>
+                ts.status !== "failed" && ts.paymentProviderType === "stripe"
+            ))
+          : null;
+
+        data.transactions.length
+          ? (total_amount = filtered_transactions?.reduce(
+              (acc, cv, array) => acc.amount + cv.amount
+            ))
+          : null;
+
         location_with_all_fields.push({
           ...current_location,
-          total_revenew: 0,
+          total_revenew: total_amount ? total_amount : 0,
         });
       }
     });

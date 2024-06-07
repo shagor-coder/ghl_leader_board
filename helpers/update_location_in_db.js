@@ -2,12 +2,10 @@ const { db } = require("../firebase/app");
 
 const update_location_in_db = async ({ data }) => {
   try {
-    const { companyId, id, ...other } = data;
-    const doc_ref = db.collection("locations").doc(companyId);
-
+    const { id, ...other } = data;
+    const doc_ref = db.collection("locations").doc();
     const location_ref = await doc_ref.get("id", "==", id);
-
-    location_ref.ref.update({
+    await location_ref.ref.update({
       ...other,
     });
     return id;
