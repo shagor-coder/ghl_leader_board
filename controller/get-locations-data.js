@@ -201,7 +201,7 @@ const get_locations_data = async (request, response, next) => {
 
         location_with_all_fields.push({
           ...current_location,
-          new_revenew: amount - current_location.total_revenew,
+          new_revenew: amount - current_location?.total_revenew,
         });
 
         last_day &&

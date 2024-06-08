@@ -11,7 +11,7 @@ const get_contacts_for_sa = async ({
       headers: { Authorization: "Bearer " + access_token },
     });
 
-    const total_contacts = data.meta.total;
+    const total_contacts = data.meta.total || 0;
 
     return { total_contacts, location_id };
   } catch (error) {
