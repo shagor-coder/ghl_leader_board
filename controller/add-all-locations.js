@@ -153,6 +153,20 @@ const add_all_locations = async (request, response, next) => {
         data: {
           ...location,
           expires_in: create_expire_date(expires_in),
+          months: [
+            { Jan: { total_revenew: 0, total_contacts: 0 } },
+            { Feb: { total_revenew: 0, total_contacts: 0 } },
+            { Mar: { total_revenew: 0, total_contacts: 0 } },
+            { Apr: { total_revenew: 0, total_contacts: 0 } },
+            { May: { total_revenew: 0, total_contacts: 0 } },
+            { Jun: { total_revenew: 0, total_contacts: 0 } },
+            { Jul: { total_revenew: 0, total_contacts: 0 } },
+            { Aug: { total_revenew: 0, total_contacts: 0 } },
+            { Sep: { total_revenew: 0, total_contacts: 0 } },
+            { Oct: { total_revenew: 0, total_contacts: 0 } },
+            { Nov: { total_revenew: 0, total_contacts: 0 } },
+            { Dec: { total_revenew: 0, total_contacts: 0 } },
+          ],
         },
       });
 

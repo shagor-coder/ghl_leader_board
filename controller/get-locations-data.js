@@ -14,7 +14,10 @@ const {
 } = require("../helpers/get-start-time-of-month");
 const get_transactions_for_sa = require("../helpers/get-transactions-for-sa");
 const update_data_in_db = require("../helpers/update-data-in-db");
-const update_location_in_db = require("../helpers/update_location_in_db");
+const {
+  update_location_in_db,
+  update_location_apis_in_db,
+} = require("../helpers/update_location_in_db");
 
 const update_locations_api = async ({
   refresh_token,
@@ -69,7 +72,7 @@ const update_locations_api = async ({
           expires_in: location_expires_in,
           locationId,
         } = data;
-        const promise = update_location_in_db({
+        const promise = update_location_apis_in_db({
           access_token: location_access_token,
           refresh_token: location_refresh_token,
           expires_in: create_expire_date(location_expires_in),
@@ -101,7 +104,7 @@ const get_locations_data = async (request, response, next) => {
       return next(create_error(401, "Please provide a companyId"));
 
     let locations = [];
-    const last_day = is_today_last_day();
+    const { is_last_day } = is_today_last_day();
 
     const locations_ref = db.collection("locations");
     const agency_ref = db.collection("agencys");
@@ -168,8 +171,15 @@ const get_locations_data = async (request, response, next) => {
         let current_location = locations.find(
           (loc) => loc.id === data.location_id
         );
-        const { name, firstName, lastName, total_contacts, total_revenew, id } =
-          current_location;
+        const {
+          name,
+          firstName,
+          lastName,
+          total_contacts,
+          total_revenew,
+          id,
+          months,
+        } = current_location;
         location_with_contacts.push({
           name,
           firstName,
@@ -178,6 +188,7 @@ const get_locations_data = async (request, response, next) => {
           total_revenew,
           id,
           new_contacts: data.total_contacts - total_contacts,
+          months: months,
         });
       }
     });
@@ -204,19 +215,20 @@ const get_locations_data = async (request, response, next) => {
           new_revenew: amount - current_location?.total_revenew,
         });
 
-        last_day &&
+        is_last_day &&
           update_location_promises.push(
             update_location_in_db({
               id: current_location.id,
               total_revenew: amount,
               total_contacts:
                 current_location.new_contacts + current_location.total_contacts,
+              months: current_location.months,
             })
           );
       }
     });
 
-    last_day && (await Promise.allSettled(update_location_promises));
+    is_last_day && (await Promise.allSettled(update_location_promises));
 
     response
       .status(200)
