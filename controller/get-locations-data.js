@@ -150,7 +150,6 @@ const get_locations_data = async (request, response, next) => {
       const contact_promise = get_contacts_for_sa({
         access_token: location.access_token,
         location_id: location.id,
-        startAfter: get_start_time_of_month(),
       });
       contact_promises.push(contact_promise);
       transaction_promises.push(transaction_promise);
@@ -221,18 +220,27 @@ const get_locations_data = async (request, response, next) => {
               id: current_location.id,
               total_revenew: amount,
               total_contacts:
-                current_location.new_contacts + current_location.total_contacts,
+                current_location?.new_contacts +
+                current_location?.total_contacts,
               months: current_location.months,
+              new_revenew: amount - current_location?.total_revenew,
+              new_contacts: current_location?.new_contacts,
             })
           );
       }
     });
 
-    is_last_day && (await Promise.allSettled(update_location_promises));
+    if (is_last_day) {
+      await Promise.allSettled(update_location_promises);
 
-    response
-      .status(200)
-      .json({ message: "Success", data: location_with_all_fields });
+      response
+        .status(200)
+        .json({ message: "Success", data: location_with_all_fields });
+    } else {
+      response
+        .status(200)
+        .json({ message: "Success", data: location_with_all_fields });
+    }
   } catch (error) {
     next(create_error(401, error.stack));
   }
